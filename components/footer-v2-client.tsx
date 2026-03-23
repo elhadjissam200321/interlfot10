@@ -88,34 +88,14 @@ export default function FooterV2({ overlay = false, noPaddingTop = false, global
 
             {/* Brand name */}
             <div>
-              <span className="font-serif text-base font-light tracking-[0.2em] uppercase text-foreground/80">
-                Interloft
-              </span>
+              <span className={labelCls}>Interloft</span>
             </div>
 
-            {/* Produits */}
-            <div>
-              <span className={labelCls}>Produits</span>
-              <nav className="flex flex-col gap-2.5">
-                <Link href="/produits" className={linkCls}>Tous les produits</Link>
-                <Link href="/produits/canapes" className={linkCls}>Canapés</Link>
-                <Link href="/produits/fauteuils" className={linkCls}>Fauteuils</Link>
-                <Link href="/produits/lits" className={linkCls}>Lits</Link>
-                <Link href="/produits/meubles" className={linkCls}>Meubles</Link>
-              </nav>
-            </div>
-
-            {/* Collections */}
-            <div>
-              <span className={labelCls}>Collections</span>
-              <nav className="flex flex-col gap-2.5">
-                <Link href="/collections/beldi" className={linkCls}>Beldi</Link>
-                <Link href="/collections/moderne" className={linkCls}>Moderne</Link>
-                <Link href="/collections/contemporaine" className={linkCls}>Contemporaine</Link>
-                <Link href="/collections/nature" className={linkCls}>Nature</Link>
-                <Link href="/collections/luxe" className={linkCls}>Luxe</Link>
-              </nav>
-            </div>
+            {/* Produits + Collections — single links */}
+            <nav className="flex flex-col gap-2.5">
+              <Link href="/produits" className={linkCls}>Produits</Link>
+              <Link href="/collections" className={linkCls}>Collections</Link>
+            </nav>
           </div>
 
           {/* Col 2: (spacer — empty on desktop, hidden on mobile) */}
