@@ -6,6 +6,8 @@ import Image from 'next/image'
 import { Search, User, X, ChevronDown } from 'lucide-react'
 import SearchModal from '@/components/search-modal'
 import FooterV2Client from '@/components/footer-v2-client'
+import MobileProductsMenu from '@/components/mobile-products-menu'
+import MobileCollectionsMenu from '@/components/mobile-collections-menu'
 
 // ── Inline Produits dropdown (vertical style) ──────────────────────────────
 function ProduitsNav({ categories, label = 'Produits' }: { categories: any[], label?: string }) {
@@ -200,10 +202,12 @@ export default function HomeHeader2({
 
             <button
               onClick={() => setMobileMenuOpen(true)}
-              className="md:hidden font-sans text-[11px] tracking-[0.2em] uppercase text-background/80 hover:text-background transition-colors cursor-pointer"
+              className="md:hidden flex flex-col gap-1.5 p-1 text-background/80 hover:text-background transition-colors cursor-pointer"
               aria-label="Ouvrir le menu"
             >
-              Menu
+              <span className="block w-6 h-px bg-current" />
+              <span className="block w-6 h-px bg-current" />
+              <span className="block w-6 h-px bg-current" />
             </button>
 
             {/* Right: icons */}
@@ -256,20 +260,17 @@ export default function HomeHeader2({
           >
             {uiStrings?.nav_intro || 'Introduction'}
           </Link>
-          <Link
-            href="/products"
-            onClick={() => setMobileMenuOpen(false)}
-            className="font-serif text-3xl font-light tracking-widest uppercase text-foreground hover:opacity-50 transition-opacity"
-          >
-            {uiStrings?.nav_products || 'Produits'}
-          </Link>
-          <Link
-            href="/collections/beldi"
-            onClick={() => setMobileMenuOpen(false)}
-            className="font-serif text-3xl font-light tracking-widest uppercase text-foreground hover:opacity-50 transition-opacity"
-          >
-            {uiStrings?.nav_collections || 'Collections'}
-          </Link>
+
+          <MobileProductsMenu
+            onLinkClick={() => setMobileMenuOpen(false)}
+            label={uiStrings?.nav_products}
+          />
+
+          <MobileCollectionsMenu
+            onLinkClick={() => setMobileMenuOpen(false)}
+            label={uiStrings?.nav_collections}
+          />
+
           <Link
             href="/collaborations"
             onClick={() => setMobileMenuOpen(false)}
