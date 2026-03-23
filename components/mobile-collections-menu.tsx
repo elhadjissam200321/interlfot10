@@ -67,7 +67,7 @@ export default function MobileCollectionsMenu({ onLinkClick, label = 'Collection
             {collections.map((collection) => (
               <Link
                 key={collection.id}
-                href={`/products/${collection.id}`}
+                href={collection.href || `/collections/${collection.slug || collection.id}`}
                 onClick={onLinkClick}
                 className="text-sm tracking-[0.2em] uppercase text-foreground/60 hover:text-foreground transition-colors"
               >

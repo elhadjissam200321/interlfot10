@@ -84,10 +84,10 @@ export default async function ProductPage({
           <div className="flex-1">
             {/* Back link */}
             <Link
-              href={`/categorie/${category.slug}`}
+              href={`/produits/${category.slug}`}
               className="inline-block font-sans text-xs tracking-[0.15em] uppercase text-muted-foreground hover:text-foreground transition-colors mb-12"
             >
-              {category.label}
+              ← {category.label}
             </Link>
 
             {/* Name */}

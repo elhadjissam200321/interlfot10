@@ -4,27 +4,33 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   INTERloft — Beige Gradient Design System
+   Palette: pure gradients of beige, from brightest ivory to warm greige.
+   Each "ambiance" set defines all zones cohesively.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 :root {
-  /* INTERloft — warm ivory / near-black / sand palette */
-  --background: oklch(0.980 0.005 80);        /* warm ivory */
-  --foreground: oklch(0.12 0 0);              /* near-black */
-  --card: oklch(0.975 0.005 80);
-  --card-foreground: oklch(0.12 0 0);
-  --popover: oklch(0.975 0.005 80);
-  --popover-foreground: oklch(0.12 0 0);
-  --primary: oklch(0.12 0 0);                 /* near-black */
-  --primary-foreground: oklch(0.980 0.005 80);
-  --secondary: oklch(0.93 0.008 75);          /* sand/stone */
-  --secondary-foreground: oklch(0.12 0 0);
-  --muted: oklch(0.93 0.008 75);
-  --muted-foreground: oklch(0.45 0.005 80);
-  --accent: oklch(0.87 0.012 70);             /* warm taupe */
-  --accent-foreground: oklch(0.12 0 0);
+  /* ── Base tokens ── */
+  --background: #F8F5F0;        /* Ivoire — default page bg */
+  --foreground: #1A1614;        /* near-black warm */
+  --card: #F5F1EB;
+  --card-foreground: #1A1614;
+  --popover: #F5F1EB;
+  --popover-foreground: #1A1614;
+  --primary: #1A1614;
+  --primary-foreground: #F8F5F0;
+  --secondary: #EDE7DC;         /* warm sand */
+  --secondary-foreground: #1A1614;
+  --muted: #EDE7DC;
+  --muted-foreground: #7A6F65;
+  --accent: #DDD3C5;            /* warm taupe */
+  --accent-foreground: #1A1614;
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.88 0.006 75);
-  --input: oklch(0.88 0.006 75);
-  --ring: oklch(0.45 0.005 80);
+  --border: #E2DAD0;
+  --input: #E2DAD0;
+  --ring: #7A6F65;
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -32,18 +38,27 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --radius: 0rem;
 
-  /* ── Color Switcher zones ── */
-  --color-navbar:       var(--background);
-  --color-mobile-menu:  var(--background);
-  --color-footer-bg:    var(--background);
-  --sidebar: oklch(0.975 0.005 80);
-  --sidebar-foreground: oklch(0.12 0 0);
-  --sidebar-primary: oklch(0.12 0 0);
-  --sidebar-primary-foreground: oklch(0.980 0.005 80);
-  --sidebar-accent: oklch(0.93 0.008 75);
-  --sidebar-accent-foreground: oklch(0.12 0 0);
-  --sidebar-border: oklch(0.88 0.006 75);
-  --sidebar-ring: oklch(0.45 0.005 80);
+  /* ── Zone colors (Ambiance system) ── */
+  --color-navbar:       #F8F5F0;
+  --color-mobile-menu:  #F8F5F0;
+  --color-footer-bg:    #EDE7DC;
+
+  /* ── Zone gradients — applied by JS via data-ambiance ── */
+  /* Body uses gradient via ambiance class */
+  --grad-page-from: #F8F5F0;
+  --grad-page-to:   #EDE7DC;
+  --grad-footer-from: #EDE7DC;
+  --grad-footer-to:   #E4D9CA;
+
+  /* sidebar */
+  --sidebar: #F5F1EB;
+  --sidebar-foreground: #1A1614;
+  --sidebar-primary: #1A1614;
+  --sidebar-primary-foreground: #F8F5F0;
+  --sidebar-accent: #EDE7DC;
+  --sidebar-accent-foreground: #1A1614;
+  --sidebar-border: #E2DAD0;
+  --sidebar-ring: #7A6F65;
 }
 
 @theme inline {
@@ -94,17 +109,83 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground;
+    background: linear-gradient(160deg, var(--grad-page-from) 0%, var(--grad-page-to) 100%);
+    background-attachment: fixed;
+    min-height: 100vh;
   }
-
 }
 
-/* Navigation uppercase tracking */
+/* ── Ambiance sets — applied to <html data-ambiance="X"> ──────────────────── */
+
+/* Default: Ivoire → Lin (lightest) */
+[data-ambiance="ivoire"],
+:root {
+  --background:        #F8F5F0;
+  --color-navbar:      #F8F5F0;
+  --color-mobile-menu: #F8F5F0;
+  --color-footer-bg:   #EDE7DC;
+  --grad-page-from:    #F8F5F0;
+  --grad-page-to:      #EDE7DC;
+  --grad-footer-from:  #EDE7DC;
+  --grad-footer-to:    #E4D9CA;
+  --border:            #E2DAD0;
+}
+
+/* Crème → Greige */
+[data-ambiance="creme"] {
+  --background:        #F2EDE4;
+  --color-navbar:      #F2EDE4;
+  --color-mobile-menu: #F2EDE4;
+  --color-footer-bg:   #E4D9CA;
+  --grad-page-from:    #F2EDE4;
+  --grad-page-to:      #DDD3C5;
+  --grad-footer-from:  #DDD3C5;
+  --grad-footer-to:    #D4C8B8;
+  --border:            #D8CEC0;
+}
+
+/* Lin → Sable */
+[data-ambiance="lin"] {
+  --background:        #E8E0D5;
+  --color-navbar:      #E8E0D5;
+  --color-mobile-menu: #E8E0D5;
+  --color-footer-bg:   #DDD3C5;
+  --grad-page-from:    #E8E0D5;
+  --grad-page-to:      #D4C8B8;
+  --grad-footer-from:  #D4C8B8;
+  --grad-footer-to:    #C8BAA8;
+  --border:            #CFC4B4;
+}
+
+/* Greige → Taupe (warmest) */
+[data-ambiance="greige"] {
+  --background:        #D9CFBF;
+  --color-navbar:      #D9CFBF;
+  --color-mobile-menu: #D9CFBF;
+  --color-footer-bg:   #C8BAA8;
+  --grad-page-from:    #D9CFBF;
+  --grad-page-to:      #C5B9A5;
+  --grad-footer-from:  #C5B9A5;
+  --grad-footer-to:    #B8A994;
+  --border:            #C0B4A2;
+}
+
+/* ── Footer gradient ───────────────────────────────────────────────────────── */
+.footer-gradient {
+  background: linear-gradient(
+    to bottom,
+    var(--grad-footer-from) 0%,
+    var(--grad-footer-to) 100%
+  );
+}
+
+/* ── Navigation uppercase tracking ─────────────────────────────────────────── */
 .nav-link {
   @apply text-xs tracking-[0.2em] uppercase font-sans;
 }
 
-/* Hero text */
+/* ── Hero text ──────────────────────────────────────────────────────────────── */
 .display-text {
   font-family: var(--font-cormorant), serif;
   font-weight: 300;
@@ -112,12 +193,12 @@
   line-height: 0.9;
 }
 
-/* Section label */
+/* ── Section label ──────────────────────────────────────────────────────────── */
 .label-text {
   @apply text-xs tracking-[0.25em] uppercase text-muted-foreground font-sans;
 }
 
-/* Thin border divider */
+/* ── Thin border divider ────────────────────────────────────────────────────── */
 .divider {
   @apply border-t border-border;
 }
