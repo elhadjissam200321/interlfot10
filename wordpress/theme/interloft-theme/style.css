@@ -1,0 +1,26 @@
+/*
+Theme Name: INTERloft Theme
+Theme URI: https://interloft.ma
+Description: Headless WordPress CMS theme for INTERloft — luxury Moroccan furniture brand. Provides CPTs and REST API for Next.js frontend.
+Version: 1.0.0
+Author: INTERloft
+Text Domain: interloft
+Requires at least: 6.0
+Requires PHP: 8.0
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Tags: custom-background, custom-logo, custom-menu, featured-images, threaded-comments, translation-ready
+*/
+
+:root {
+    --background: oklch(0.980 0.005 80);
+    --foreground: oklch(0.12 0 0);
+    --primary: oklch(0.12 0 0);
+    --secondary: oklch(0.93 0.008 75);
+    --accent: oklch(0.87 0.012 70);
+    --border: oklch(0.88 0.006 75);
+    --muted: oklch(0.93 0.008 75);
+    --radius: 0rem;
+    --font-sans: 'Inter', system-ui, sans-serif;
+    --font-serif: 'Cormorant Garamond', Georgia, serif;
+}

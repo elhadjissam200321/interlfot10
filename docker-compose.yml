@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  wordpress:
+    image: wordpress:latest
+    ports:
+      - "8080:80"
+    environment:
+      WORDPRESS_DB_HOST: database
+      WORDPRESS_DB_NAME: interloft
+      WORDPRESS_DB_USER: interloft
+      WORDPRESS_DB_PASSWORD: interloft123
+    volumes:
+      - wordpress:/var/www/html
+      - ./wordpress/theme/interloft-theme:/var/www/html/wp-content/themes/interloft-theme
+    depends_on:
+      - database
+    restart: unless-stopped
+
+  database:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: interloft
+      MYSQL_USER: interloft
+      MYSQL_PASSWORD: interloft123
+      MYSQL_ROOT_PASSWORD: root123
+    volumes:
+      - database:/var/lib/mysql
+    restart: unless-stopped
+
+volumes:
+  wordpress:
+  database:

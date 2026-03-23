@@ -1,0 +1,102 @@
+[
+  {
+    "slug": "canape-alba",
+    "name": "Canapé Alba",
+    "category": "canapes",
+    "description": "Le canapé Alba incarne l'élégance minimaliste avec ses lignes épurées et ses proportions soigneusement étudiées. Conçu pour créer une atmosphère sereine dans tout intérieur contemporain.",
+    "materials": [
+      "Lin naturel",
+      "Structure en hêtre massif",
+      "Mousse haute résilience"
+    ],
+    "dimensions": "L 240 × P 96 × H 78 cm — Hauteur d'assise : 42 cm",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/canapes.jpg",
+    "gallery": [
+      "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/canapes.jpg",
+      "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/product-sofa-1.jpg",
+      "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/product-sofa-2.jpg"
+    ]
+  },
+  {
+    "slug": "canape-composable-forma",
+    "name": "Canapé Composable Forma",
+    "category": "canapes-composables",
+    "description": "La collection Forma propose un système modulaire d'une grande liberté de composition. Chaque élément s'assemble harmonieusement pour créer un espace de vie sur mesure.",
+    "materials": [
+      "Tissu bouclé écru",
+      "Piètement en chêne huilé",
+      "Rembourrage en duvet"
+    ],
+    "dimensions": "Modules de L 90 × P 96 × H 72 cm — Configurations multiples",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/composables.jpg",
+    "gallery": [
+      "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/composables.jpg",
+      "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/canapes.jpg"
+    ]
+  },
+  {
+    "slug": "fauteuil-lune",
+    "name": "Fauteuil Lune",
+    "category": "fauteuils",
+    "description": "Le Fauteuil Lune est une pièce sculptée entre confort et beauté formelle. Sa silhouette organique et sa généreuse assise en font un objet de contemplation autant qu'un siège.",
+    "materials": [
+      "Velours côtelé naturel",
+      "Structure en métal laqué noir mat",
+      "Mousse ergonomique"
+    ],
+    "dimensions": "L 82 × P 88 × H 80 cm — Hauteur d'assise : 44 cm",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/fauteuils.jpg",
+    "gallery": [
+      "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/fauteuils.jpg"
+    ]
+  },
+  {
+    "slug": "canape-nova",
+    "name": "Canapé Nova",
+    "category": "nouveautes",
+    "description": "Nouvelle pièce de la collection, le Canapé Nova se distingue par son architecture audacieuse et son tissu de haute qualité. Une proposition contemporaine pour les intérieurs exigeants.",
+    "materials": [
+      "Microfibre sable",
+      "Piètement en noyer massif",
+      "Coussin en plumes d'oie"
+    ],
+    "dimensions": "L 210 × P 90 × H 74 cm — Hauteur d'assise : 40 cm",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/nouveautes.jpg",
+    "gallery": [
+      "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/nouveautes.jpg",
+      "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/product-sofa-1.jpg"
+    ]
+  },
+  {
+    "slug": "lit-alba",
+    "name": "Lit Alba",
+    "category": "lits",
+    "description": "Le Lit Alba redéfinit l'espace nuit avec sa tête de lit capitonnée et son plateau bas. Une silhouette horizontale et apaisante pour des nuits d'un luxe discret.",
+    "materials": [
+      "Lin lavé beige",
+      "Structure en bois massif teinté",
+      "Sommier à lattes"
+    ],
+    "dimensions": "L 180 × P 200 cm — Hauteur totale 90 cm",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/lits.jpg",
+    "gallery": [
+      "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/lits.jpg"
+    ]
+  },
+  {
+    "slug": "console-trace",
+    "name": "Console Tracé",
+    "category": "meubles",
+    "description": "La Console Tracé est une pièce d'une remarquable légèreté visuelle. Sa structure filiforme en métal laqué et son plateau en marbre composent un équilibre parfait entre rigueur et sensibilité.",
+    "materials": [
+      "Plateau en marbre travertin",
+      "Structure en acier laqué noir",
+      "Fixations invisibles"
+    ],
+    "dimensions": "L 140 × P 38 × H 80 cm",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/meubles.jpg",
+    "gallery": [
+      "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/meubles.jpg"
+    ]
+  }
+]

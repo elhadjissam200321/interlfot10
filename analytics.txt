@@ -1,0 +1,275 @@
+# Deep Technical Analysis — INTERloft E-commerce
+
+---
+
+## 1. PROJECT OVERVIEW
+
+**Type:** Full-stack e-commerce / CMS platform for a Moroccan luxury furniture brand  
+**Purpose:** Product catalog, collaborator showcase, CMS, user accounts, and admin dashboard  
+**Stack:** Next.js 16.1.6 (App Router) + React 19.2.4 + TypeScript + Supabase + Tailwind CSS v4 + shadcn/ui
+
+---
+
+## 2. FOLDER STRUCTURE
+
+```
+/app                     → Next.js 16 App Router (file-based routing)
+  /auth                  → Authentication pages (connexion, inscription, mot-de-passe-oublie, inscription-succes)
+  /api                   → API routes (admin/migrate, admin/seed-cms, categories, collections)
+  /admin                 → Protected admin dashboard (products, categories, collections, collaborators, pages)
+  /products              → Product listing pages with [category] dynamic route
+  /collections          → Collection pages with [slug] dynamic route
+  /collaborations       → Collaborator pages with [slug] dynamic route
+  /compte               → User account page (protected)
+  /introduction         → Brand story page
+  /contact              → Contact page with form
+  /points-de-vente      → Showroom locations
+  /confidentialite      → Privacy policy
+  /cookies              → Cookie policy
+  /conditions           → Terms & conditions
+  /accueil-2            → Alternative homepage variant
+
+/components              → Reusable UI components
+  /ui                   → 57 shadcn/ui components (button, dialog, sheet, carousel, etc.)
+  /home                 → Homepage-specific sections (hero, categories, showrooms, CTA)
+  /admin                → Admin form components (product-form, category-form, collaborator-form, etc.)
+  /contact              → Contact form
+  navbar.tsx            → Fixed navbar with scroll effect + mobile hamburger
+  footer.tsx / footer-v2.tsx → Two footer variants (v2 is newer, minimal)
+  color-switcher.tsx    → Unique custom color picker (CSS variable theming)
+  preloader.tsx         → Animated loading screen with counter
+  theme-provider.tsx    → next-themes wrapper
+  search-modal.tsx      → Full-screen search with live Supabase queries
+  favorite-button.tsx   → Heart toggle (client component)
+  favorites-list.tsx    → User favorites carousel
+  product-gallery.tsx   → Image gallery with thumbnails
+  profile-edit-form.tsx → Account profile form
+
+/lib                    → Utilities and data
+  /supabase             → Supabase client, server, middleware, queries, schema, migration
+  utils.ts              → cn() helper (clsx + tailwind-merge)
+  data.ts               → Static product/category/collection data + types
+  collaborators-data.ts → Static collaborator data
+
+/hooks                  → Custom React hooks
+  use-favorites.ts      → Favorites CRUD via Supabase user metadata
+  use-products.ts       → Client-side product fetching
+  use-toast.ts          → Custom toast state management (inspired by react-hot-toast)
+  use-mobile.ts         → Mobile breakpoint detection
+
+/public                 → Static assets (logos, placeholders, images/)
+/styles                 → globals.css (Tailwind v4 import + CSS custom properties)
+```
+
+---
+
+## 3. ROUTING SYSTEM
+
+**Framework:** Next.js 16 App Router with React Server Components (RSC)
+
+**Main routes:**
+| Route | Type | Description |
+|-------|------|-------------|
+| `/` | Server Page | Homepage (home-header-2 with slideshow) |
+| `/accueil-2` | Server Page | Alternative homepage (home-header-3) |
+| `/products` | Server Page | All categories grid |
+| `/products/[category]` | Server Page (dynamic) | Products by category |
+| `/products/[category]/[product]` | Dynamic | Product detail |
+| `/collections/[slug]` | Server Page (dynamic) | Collection page |
+| `/collaborations` | Server Page | All collaborators |
+| `/collaborations/[slug]` | Server Page (dynamic) | Collaborator profile |
+| `/auth/connexion` | Client Page | Login |
+| `/auth/inscription` | Client Page | Registration |
+| `/compte` | Server Page (protected) | User account |
+| `/admin/*` | Server Pages (protected) | Admin CMS |
+| `/contact` | Server Page | Contact page |
+| `/introduction` | Server Page | About page |
+| `/points-de-vente` | Server Page | Showrooms |
+
+**Navigation:** Two distinct nav patterns — `Navbar` (sticky, scroll-aware) and `HomeHeader2/3` (full-screen hero overlay). Both use inline dropdown subcomponents and a mobile overlay menu.
+
+---
+
+## 4. COMPONENT ARCHITECTURE
+
+**Top-level patterns:**
+
+| Component | Role | Pattern |
+|-----------|------|---------|
+| `HomeHeader2` | Homepage hero | Client component — slideshow, nav dropdowns, search, mobile menu |
+| `Navbar` | Inner page nav | Client component — sticky scroll, mobile hamburger |
+| `FooterV2` | All pages | Client component — newsletter panel, links |
+| `Preloader` | All pages | Client component — 0-100 counter animation |
+| `ColorSwitcher` | All pages | Client component — CSS variable theming with localStorage |
+
+**Home section components** (server or client):
+- `HeroSection` — product slideshow (client, uses static data)
+- `CategoriesSection` — featured + grid categories (server)
+- `IntroductionSection` — about text (server)
+- `ShowroomsSection` — showroom locations (server)
+- `ContactCtaSection` — CTA block (server)
+
+**Dropdown components:**
+- `ProductsDropdown` — fetches from `/api/categories`, lazy-loaded, supports light/dark variant
+- `CollectionsDropdown` — fetches from `/api/collections`, same pattern
+- `MobileProductsMenu` / `MobileCollectionsMenu` — mobile accordion variants
+
+**Admin components:**
+- `ProductForm` — CRUD form for products (materials array, image URL, category/collection select)
+- `CategoryForm`, `CollectionForm`, `CollaboratorForm` — same CRUD pattern
+- `PageContentForm` — CMS text content editor
+
+**Data flow:**
+- Server Pages → async Supabase queries → pass data as props to Client Components
+- Client Components → `useState`/`useEffect` for local interactivity
+- `FavoritesButton` → `useFavorites` hook → Supabase `updateUser` (metadata)
+
+---
+
+## 5. DATA FLOW
+
+**Data sources (3 layers):**
+
+1. **Static data** (`/lib/data.ts`, `/lib/collaborators-data.ts`) — hardcoded fallback data for products, categories, collections, collaborators
+2. **Supabase database** — primary data source when env vars configured; tables: `products`, `categories`, `collections`, `collaborators`, `pages_content`
+3. **URL params / query strings** — search params for contact form pre-fill
+
+**Fetch strategy:**
+- **Server Components** use `Promise.all` parallel fetches via `createClient()` (server-side Supabase client)
+- **Client Components** use lazy-fetch on first interaction (dropdowns don't fetch until opened)
+- **Search Modal** fetches products/categories on every keystroke with debounce-free immediate feedback
+- **Graceful degradation** — if Supabase env vars missing, all queries return `[]` or `null`, pages render with empty states
+
+**Migration pipeline:**
+`lib/supabase/migrate-data.ts` (Node script) → reads static data → maps image URLs to Supabase Storage → upserts into DB via `supabase.from().upsert()`
+
+---
+
+## 6. STATE MANAGEMENT
+
+| State Type | Mechanism | Location |
+|-----------|-----------|---------|
+| Server data | React Server Components props | Pages pass to children |
+| URL state | Next.js dynamic routes + searchParams | Contact form |
+| Form state | `useState` + react-hook-form patterns | Admin forms |
+| UI state | `useState`/`useEffect` | Dropdowns, modals, carousels |
+| Auth state | Supabase session (cookies) | Middleware + server components |
+| User metadata | Supabase `updateUser` | `useFavorites` hook |
+| Theme/color | CSS custom properties + localStorage | `ColorSwitcher` |
+| Toast state | Custom reducer pattern | `useToast` hook (no external lib) |
+| Mobile detection | `matchMedia` listener | `useIsMobile` hook |
+
+**No global state library** (Zustand/Redux/Jotai) — the app uses React's built-in state + Server Component data passing.
+
+---
+
+## 7. API & BACKEND
+
+**API Routes:**
+
+| Route | Method | Purpose |
+|-------|--------|---------|
+| `/api/categories` | GET | Fetch categories |
+| `/api/collections` | GET | Fetch collections |
+| `/api/admin/migrate` | POST | Trigger data migration from static → Supabase |
+| `/api/admin/seed-cms` | POST | Seed CMS content pages |
+
+**Supabase Backend:**
+
+- **Auth:** Email/password via `signInWithPassword`, `signUp` with metadata (first_name, last_name, favorites)
+- **Database:** 5 tables with RLS policies (public read, authenticated write)
+- **Session management:** `middleware.ts` runs `updateSession` on every request (cookie refresh)
+- **Protected routes:** `/compte/*` and `/admin/*` redirect to `/auth/connexion` if no user
+- **Storage:** Supabase Storage bucket for images (interloft.ma domain allowed)
+
+**Admin CMS:**
+- Dashboard with stats
+- CRUD interfaces for all 4 content types
+- Migration/seed tool from admin panel
+- `dangerouslySetInnerHTML` script injection for migration button (anti-pattern)
+
+---
+
+## 8. STYLING SYSTEM
+
+**Tailwind CSS v4** with:
+- `@import 'tailwindcss'` (v4 syntax)
+- `@theme inline` block defining all CSS variables
+- `oklch()` color space throughout the palette
+- Custom variants: `dark()` via `@custom-variant`
+
+**Design tokens (CSS custom properties):**
+```
+--background: oklch(0.980 0.005 80)    ← warm ivory
+--foreground: oklch(0.12 0 0)            ← near-black
+--primary: oklch(0.12 0 0)              ← near-black
+--secondary: oklch(0.93 0.008 75)       ← sand/stone
+--accent: oklch(0.87 0.012 70)           ← warm taupe
+--border: oklch(0.88 0.006 75)           ← warm border
+--radius: 0rem                          ← square (no rounded corners)
+```
+
+**Color switcher:** `ColorSwitcher` component modifies `--background` CSS variable at runtime, persists to `localStorage`.
+
+**Fonts:**
+- `--font-sans` → Inter (300, 400, 500)
+- `--font-serif` → Cormorant Garamond (300, 400, 500, 600) — for headings
+- `--font-display` → Cormorant Garamond alias
+
+**Typography utilities:**
+- `.nav-link` — `text-xs tracking-[0.2em] uppercase`
+- `.display-text` — Cormorant, weight 300, tight leading
+- `.label-text` — `text-xs tracking-[0.25em] uppercase text-muted-foreground`
+
+---
+
+## 9. CODE QUALITY & STRUCTURE
+
+**Strengths:**
+- RSC-first architecture — minimal client bundle where possible
+- Graceful Supabase degradation — works without env vars
+- shadcn/ui with Tailwind v4 — excellent component library foundation
+- Consistent design system with CSS custom properties
+- TypeScript throughout with strict mode
+- Parallel data fetching with `Promise.all`
+- Next.js 16 with `ignoreBuildErrors: true` (acceptable for v0 projects)
+
+**Issues:**
+- `ignoreBuildErrors: true` hides type errors in production
+- Admin forms use `any` types extensively
+- `dangerouslySetInnerHTML` in `admin/page.tsx` for migration button script
+- Duplicate components — `home-header.tsx`, `home-header-2.tsx`, `home-header-3.tsx` share ~80% code
+- Static data (`data.ts`) not deleted after migration — dual-source confusion
+- Auth pages (`connexion`, `inscription`) are fully client-side despite minimal state needs
+- No loading.tsx / error.tsx boundaries in app directory
+- `tsconfig` missing `baseUrl` but has `paths` — works due to Next.js plugin
+
+**Scalability concerns:**
+- Favorites stored in user metadata (not a dedicated table) — limited to ~100 items
+- No pagination on product/admin lists
+- Contact form submission is client-side only (no actual email sending)
+- No server-side validation — all validation is client-side or form-level
+- `products.json`, `categories.json`, etc. at root level are unused static fixtures
+
+---
+
+## 10. SUMMARY
+
+**Architecture quality: 7/10**
+
+**Strengths:**
+- Modern Next.js 16 App Router with proper RSC/Client separation
+- Excellent UI foundation with shadcn/ui + Tailwind v4
+- Clean design system with oklch color palette
+- Supabase integration with graceful fallback
+- Good CMS for non-technical users
+
+**Weaknesses:**
+- No dedicated global state management
+- Admin panel uses anti-patterns (dangerouslySetInnerHTML)
+- Multiple duplicate header variants
+- Type safety gaps in admin layer
+- Contact form doesn't actually send emails
+- Build errors ignored in production
+
+**Overall:** A well-structured luxury furniture e-commerce site with a thoughtful design system. The dual data source approach (static + Supabase) provides resilience but adds complexity. The admin CMS is functional but would benefit from formalization. The codebase prioritizes aesthetics and DX over production hardening.

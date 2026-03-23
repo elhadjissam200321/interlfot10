@@ -1,0 +1,32 @@
+[
+  {
+    "id": "beldi",
+    "label": "Collection Beldi",
+    "description": "L'essence du patrimoine marocain revisité avec une touche contemporaine.",
+    "href": "/collections/beldi"
+  },
+  {
+    "id": "moderne",
+    "label": "Collection Moderne",
+    "description": "Des lignes épurées et un design minimaliste pour les espaces actuels.",
+    "href": "/collections/moderne"
+  },
+  {
+    "id": "contemporaine",
+    "label": "Collection Contemporaine",
+    "description": "L'équilibre parfait entre tradition et innovation.",
+    "href": "/collections/contemporaine"
+  },
+  {
+    "id": "nature",
+    "label": "Collection Nature",
+    "description": "Des matériaux naturels pour une harmonie avec l'environnement.",
+    "href": "/collections/nature"
+  },
+  {
+    "id": "luxe",
+    "label": "Collection Luxe",
+    "description": "L'excellence artisanale pour des intérieurs d'exception.",
+    "href": "/collections/luxe"
+  }
+]

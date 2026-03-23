@@ -1,0 +1,612 @@
+# Technical Audit Report — INTERloft Next.js Project
+## Headless WordPress Integration Readiness Assessment
+
+---
+
+## EXECUTIVE SUMMARY
+
+The codebase has a solid architectural foundation (7/10) with modern Next.js 16, React Server Components, and a clean design system. However, before integrating with WordPress as a headless CMS, **7 critical security issues must be fixed**. The most urgent is that `/admin/*` routes are **NOT protected by middleware** — anyone can access the admin panel without login.
+
+The project also has a `next.config.mjs` with `ignoreBuildErrors: true` that silently hides type errors in production builds. Removing this and fixing the 4 TypeScript errors is a prerequisite for a clean headless integration.
+
+---
+
+## FINDINGS BY SEVERITY
+
+### CRITICAL — Must Fix Before Headless Integration
+
+---
+
+#### C1: Admin Routes Have No Middleware Protection
+
+**File:** `middleware.ts:53-63`
+
+**Problem:** The middleware matcher explicitly excludes `/api/*` routes but **does NOT include `/admin/*`**. The middleware only protects `/compte` and `/protected` paths:
+
+```typescript
+if (
+  (request.nextUrl.pathname.startsWith('/compte') ||
+   request.nextUrl.pathname.startsWith('/protected')) &&
+  !user
+) {
+  return NextResponse.redirect(url)
+}
+```
+
+This means anyone can navigate directly to `/admin`, `/admin/products`, `/admin/products/new` without authentication. The admin layout has a server-side `getUser()` check, but this is a **defense-in-depth** issue — middleware should be the first line of defense.
+
+**Impact:** Any visitor can access the admin dashboard, view all products/categories, and trigger the migration tool.
+
+**Fix:**
+```typescript
+// middleware.ts — add /admin to protected paths
+if (
+  (request.nextUrl.pathname.startsWith('/compte') ||
+   request.nextUrl.pathname.startsWith('/admin') ||
+   request.nextUrl.pathname.startsWith('/protected')) &&
+  !user
+) {
+  const url = request.nextUrl.clone()
+  url.pathname = '/auth/connexion'
+  return NextResponse.redirect(url)
+}
+```
+
+---
+
+#### C2: No Admin Role Verification
+
+**File:** `app/admin/layout.tsx:24`
+
+```typescript
+// Simple admin check (for now just logged in, can be refined)
+```
+
+**Problem:** Any authenticated Supabase user can access the admin panel. There's no role or admin check. A customer who creates an account can access `/admin` and trigger data migrations.
+
+**Impact:** Privilege escalation — any logged-in user becomes an admin.
+
+**Fix:** Add role check. Options:
+1. Add an `is_admin` boolean field to the user's `user_metadata` in Supabase Auth
+2. Check in middleware: `user.user_metadata?.is_admin === true`
+3. Or: maintain an `admin_users` table in Supabase and query it
+
+```typescript
+// In admin layout or middleware:
+const isAdmin = user.user_meta?data?.is_admin === true
+if (!isAdmin) {
+  redirect('/compte')  // demote to regular user
+}
+```
+
+---
+
+#### C3: XSS via ColorSwitcher localStorage Manipulation
+
+**File:** `components/color-switcher.tsx:116-127`
+
+**Problem:** The color switcher loads a hex value from `localStorage`, validates it with `isValidHex()`, and sets it as a CSS custom property on `document.documentElement`. However, the `localStorage` value is stored as `JSON.stringify({ 'bg-page': hex })`:
+
+```typescript
+const saved = localStorage.getItem(STORAGE_KEY)
+if (saved) {
+  const parsed = JSON.parse(saved)  // parsed value is validated
+  const hex = typeof parsed === 'string' ? parsed : parsed['bg-page'] || SLOT_DEFAULT
+  if (isValidHex(hex)) {  // validation passes
+    document.documentElement.style.setProperty(SLOT_VAR, hex)
+  }
+}
+```
+
+The code validates the hex, but an attacker who can write to localStorage (via another XSS, browser extension, or shared computer) could inject:
+- CSS injection via long hex values: `calc(1)` can lead to scrollbar attacks
+- Property injection: `; --fake-var: url("javascript:alert(1)")` (modern browsers prevent `javascript:` in CSS, but other injections are possible)
+
+**Impact:** CSS injection for UX defacement. Limited scope but still a vulnerability.
+
+**Fix:** Add a strict allowlist of hex values, ignore any custom input that isn't in the predefined palette:
+
+```typescript
+const PALETTE_HEXES = new Set(BEIGE_PALETTE.map(p => p.hex))
+
+function handleChange(hex: string) {
+  if (!isValidHex(hex)) return
+  // Only allow palette colors for stored values
+  if (!PALETTE_HEXES.has(hex)) return
+  setColor(hex)
+  document.documentElement.style.setProperty(SLOT_VAR, hex)
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ 'bg-page': hex }))
+}
+```
+
+Also, the navbar reads `--color-navbar` and `--color-mobile-menu` from a CSS variable:
+
+```typescript
+// navbar.tsx:50
+style={scrolled ? { backgroundColor: 'var(--color-navbar)' } : undefined}
+// navbar.tsx:142
+style={{ backgroundColor: 'var(--color-mobile-menu)' }}
+```
+
+These CSS vars are set by the ColorSwitcher but not validated. Ensure only palette hexes are used.
+
+---
+
+#### C4: `dangerouslySetInnerHTML` Migration Script in Admin
+
+**File:** `app/admin/page.tsx:70-95`
+
+```typescript
+<script dangerouslySetInnerHTML={{
+  __html: `
+    document.getElementById('migration-trigger')?.addEventListener('click', async () => {
+      // ... fetch('/api/admin/migrate', { method: 'POST' }) ...
+    });
+  `
+}} />
+```
+
+**Problem:** This injects an inline script from server-rendered code. While not directly exploitable in this context (the content is static), it violates security best practices and could become an issue if the component evolves.
+
+**Impact:** Low — content is static, but anti-pattern for maintenance.
+
+**Fix:** Extract to a proper client component:
+
+```typescript
+// components/admin/migration-trigger.tsx
+'use client'
+export default function MigrationTrigger() {
+  return <button id="migration-trigger" onClick={handleMigration}>...</button>
+}
+```
+
+---
+
+#### C5: Supabase RLS Policies Unknown
+
+**Files:** All queries in `lib/supabase/queries.ts`
+
+**Problem:** The Supabase client uses the anon key, meaning queries go through RLS (Row Level Security) policies. However, the actual RLS policies are defined in `lib/supabase/schema.sql` which was not provided. If RLS is not configured, the public could read/write all data.
+
+**Impact:** Unknown — depends on RLS configuration. If not set, full database access to everyone.
+
+**Action:** Verify in Supabase dashboard:
+1. RLS is enabled on all 5 tables (products, categories, collections, collaborators, pages_content)
+2. Public read: `SELECT` for everyone (`(auth.role() = 'anon')`)
+3. Authenticated write: `INSERT`, `UPDATE`, `DELETE` only for authenticated users
+4. Admin write: `UPDATE`, `DELETE` only for admin users
+
+---
+
+### HIGH — Fix Before Production
+
+---
+
+#### H1: `ignoreBuildErrors: true` Hides Type Errors
+
+**File:** `next.config.mjs:3-5`
+
+```typescript
+typescript: {
+  ignoreBuildErrors: true,
+},
+```
+
+**Problem:** This silently ignores ALL TypeScript errors during `next build`. The project currently has 4 real TypeScript errors (null checks on `supabase` client) that are hidden. In production, unknown type errors could cause runtime crashes.
+
+**Fix:**
+1. Remove `ignoreBuildErrors: true` from `next.config.mjs`
+2. Fix the 4 null safety errors:
+
+```typescript
+// app/auth/connexion/page.tsx:23 — change:
+const { error } = await supabase.auth.signInWithPassword(...)
+// to:
+if (!supabase) return
+const { error } = await supabase.auth.signInWithPassword(...)
+```
+
+Same pattern for:
+- `app/auth/inscription/page.tsx:38`
+- `app/auth/mot-de-passe-oublie/page.tsx:21`
+- `components/logout-button.tsx:15`
+```
+
+---
+
+#### H2: Contact Form Doesn't Send Emails
+
+**File:** `components/contact/contact-form.tsx:52-55`
+
+```typescript
+function handleSubmit(e: React.FormEvent) {
+  e.preventDefault()
+  setSubmitted(true)  // Only shows success message, NO ACTUAL EMAIL
+}
+```
+
+**Problem:** The form simulates submission but never sends data anywhere. The `setSubmitted(true)` just shows a success UI. There is no API route that handles the contact form submission, no email sending, and no database storage of messages.
+
+**Impact:** Contact form is completely non-functional.
+
+**Fix — Add API route:**
+```typescript
+// app/api/contact/route.ts
+export async function POST(req: Request) {
+  const { name, email, subject, message } = await req.json()
+  
+  // Validate
+  if (!name || !email || !message) {
+    return Response.json({ error: 'Missing fields' }, { status: 400 })
+  }
+  
+  // Send email via Resend, SendGrid, or Supabase Edge Functions
+  // Store in database
+  // Return success
+}
+```
+
+---
+
+#### H3: Mobile Menu Color from localStorage Without Sanitization
+
+**File:** `components/navbar.tsx:50, 142`
+
+```typescript
+style={scrolled ? { backgroundColor: 'var(--color-navbar)' } : undefined}
+// navbar.tsx:142
+style={{ backgroundColor: 'var(--color-mobile-menu)' }}
+```
+
+**Problem:** The navbar uses CSS custom properties `--color-navbar` and `--color-mobile-menu` set by the ColorSwitcher, but these are not validated. If `--color-mobile-menu` is set to a malicious value, it could break the mobile menu overlay.
+
+**Fix:** Ensure ColorSwitcher only sets validated palette colors, OR sanitize the CSS variable reads:
+
+```typescript
+function sanitizeCSSColor(color: string): string {
+  // Allow only safe CSS color values
+  if (/^#[0-9A-Fa-f]{6}$/.test(color)) return color
+  return 'var(--background)'  // fallback to safe default
+}
+```
+
+---
+
+#### H4: Auth Pages Are Unnecessarily Client Components
+
+**Files:** 
+- `app/auth/connexion/page.tsx`
+- `app/auth/inscription/page.tsx`
+- `app/auth/mot-de-passe-oublie/page.tsx`
+
+**Problem:** These three pages are `'use client'` but only use `useState` for form inputs. The Supabase `signInWithPassword` and `signUp` calls could be done in a Server Action instead, eliminating the client bundle entirely.
+
+**Impact:** Larger client bundle, slower initial load, unnecessary hydration.
+
+**Fix — Convert to Server Actions:**
+```typescript
+// app/actions/auth.ts
+'use server'
+export async function login(formData: FormData) {
+  const supabase = await createClient()
+  if (!supabase) return { error: 'Configuration error' }
+  
+  const { error } = await supabase.auth.signInWithPassword({
+    email: formData.get('email') as string,
+    password: formData.get('password') as string,
+  })
+  
+  if (error) return { error: error.message }
+  redirect('/compte')
+}
+```
+
+Then the page becomes a Server Component with a `<form action={login}>`.
+
+---
+
+#### H5: Search Modal Directly Queries Supabase from Client
+
+**File:** `components/search-modal.tsx:70-86`
+
+```typescript
+const [productsResult, categoriesResult] = await Promise.all([
+  supabase.from('products').select('*')
+    .or(`name.ilike.%${normalizedQuery}%,...`),
+  supabase.from('categories').select('*')
+    .ilike('label', `%${normalizedQuery}%`),
+])
+```
+
+**Problem:** 
+1. Supabase `ilike` is used with template literal interpolation (`${normalizedQuery}`) — while Supabase client sanitizes this, it's better practice to use parameterized queries
+2. Direct Supabase calls from client expose the anon key and RLS bypass vector
+3. No rate limiting — a bot could spam the search and exhaust the database
+
+**Fix:** Add a dedicated API route for search:
+```typescript
+// app/api/search/route.ts
+export async function GET(req: Request) {
+  const { q } = Object.fromEntries(new URL(req.url).searchParams)
+  // Rate limiting check here
+  // Parameterized Supabase query
+  // Return results
+}
+```
+
+---
+
+#### H6: Favorites Stored in User Metadata — Scalability Limit
+
+**File:** `hooks/use-favorites.ts:19-20`
+
+```php
+const userFavorites = user.user_metadata?.favorites || []
+```
+
+**Problem:** 
+1. User metadata is serialized — every toggle reads the entire favorites array, modifies it, and writes it back
+2. With 100+ favorites and 1000+ concurrent users, this causes database lock contention
+3. No dedicated favorites table in Supabase
+
+**Impact:** Will break at scale. Favorites will be lost or corrupted under load.
+
+**Fix — Create dedicated favorites table:**
+```sql
+CREATE TABLE favorites (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users NOT NULL,
+  product_id TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(user_id, product_id)
+);
+
+-- RLS: Users can only read/insert/delete their own favorites
+ALTER TABLE favorites ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users manage own favorites" ON favorites
+  FOR ALL USING (auth.uid() = user_id);
+```
+
+Then update `use-favorites.ts` to query this table instead of user metadata.
+
+---
+
+### MEDIUM — Fix Before Headless Integration
+
+---
+
+#### M1: No Pagination on Product Lists
+
+**Files:** 
+- `app/products/page.tsx`
+- `app/admin/products/page.tsx`
+- `hooks/use-products.ts:30`
+
+```typescript
+const { data } = await supabase.from('products').select('*')
+// No .limit() or pagination
+```
+
+**Problem:** All products are fetched at once. With 1000+ products, this causes slow loads and memory issues.
+
+**Fix:** Add pagination with `range(from, to)`:
+```typescript
+const { data } = await supabase
+  .from('products')
+  .select('*', { count: 'exact' })
+  .range(page * limit, (page + 1) * limit - 1)
+```
+
+---
+
+#### M2: Missing Route-Level Error Boundaries
+
+**Problem:** No `app/error.tsx` or `app/not-found.tsx` (custom) files exist. A Supabase query failure on any page will show a blank error or Next.js default error.
+
+**Fix:** Add:
+```typescript
+// app/error.tsx
+'use client'
+export default function Error({ error, reset }) {
+  return (
+    <div className="...">
+      <p>Une erreur est survenue.</p>
+      <button onClick={() => reset()}>Réessayer</button>
+    </div>
+  )
+}
+```
+
+---
+
+#### M3: Admin Forms Use `any` Types Extensively
+
+**File:** `components/admin/product-form.tsx:12-14`
+
+```typescript
+interface ProductFormProps {
+    initialData?: any
+    categories: any[]
+    collections: any[]
+}
+```
+
+**Problem:** `any` bypasses TypeScript entirely. Mismatched data causes silent runtime errors.
+
+**Fix:** Define proper TypeScript interfaces:
+```typescript
+interface Product {
+  id?: string
+  name: string
+  slug: string
+  category: string
+  description: string
+  materials: string[]
+  dimensions: string
+  image: string
+  gallery: string[]
+  collection_id?: string
+}
+
+interface Category {
+  id: string
+  label: string
+  image: string
+  href: string
+}
+```
+
+---
+
+#### M4: No Loading States for Route Transitions
+
+**Problem:** No `app/loading.tsx` files. When navigating between pages with slow Supabase queries, there's no loading indicator.
+
+**Fix:** Add `loading.tsx` to key routes:
+```typescript
+// app/products/loading.tsx
+export default function Loading() {
+  return <div className="min-h-screen flex items-center justify-center">
+    <div className="text-sm text-muted-foreground">Chargement...</div>
+  </div>
+}
+```
+
+---
+
+#### M5: Inconsistent Error Handling in Queries
+
+**Files:** `lib/supabase/queries.ts`
+
+Some functions have try/catch:
+```typescript
+// getProducts — has try/catch
+// getProductsByCategory — NO try/catch
+// getCategoryBySlug — NO try/catch
+```
+
+**Fix:** Standardize all query functions with consistent error handling:
+```typescript
+export async function getProductsByCategory(category: string) {
+  try {
+    const supabase = await createClient()
+    if (!supabase) return []
+    const { data, error } = await supabase
+      .from('products').select('*').eq('category', category)
+    if (error) {
+      console.error('getProductsByCategory error:', error)
+      return []
+    }
+    return data || []
+  } catch (e) {
+    console.error('getProductsByCategory exception:', e)
+    return []
+  }
+}
+```
+
+---
+
+### LOW — Nice to Have
+
+---
+
+#### L1: Auth Pages Could Use Server Actions
+
+See H4 above.
+
+---
+
+#### L2: Unused shadcn/ui Components
+
+The project installs 30+ Radix UI components but many are unused. Check with:
+```bash
+grep -r "@radix-ui" components/ | grep -v "node_modules"
+```
+
+Components likely unused: `@radix-ui/react-accordion`, `@radix-ui/react-alert-dialog`, `@radix-ui/react-checkbox`, `@radix-ui/react-radio-group`, `@radix-ui/react-scroll-area`, `@radix-ui/react-slider`, `@radix-ui/react-switch`, `@radix-ui/react-toggle`, `@radix-ui/react-toggle-group`, `@radix-ui/react-hover-card`.
+
+**Fix:** Run `npx shadcn remove unused-component` for each, then uninstall the package.
+
+---
+
+#### L3: Generator Meta Tag
+
+**File:** `app/layout.tsx:26`
+
+```typescript
+generator: 'v0.app',
+```
+
+**Fix:** Remove from metadata export.
+
+---
+
+## SECURITY SUMMARY
+
+| ID | Issue | Severity | File | Status |
+|----|-------|----------|------|--------|
+| C1 | Admin routes not in middleware | CRITICAL | middleware.ts | NOT FIXED |
+| C2 | No admin role verification | CRITICAL | admin/layout.tsx | NOT FIXED |
+| C3 | ColorSwitcher XSS via localStorage | CRITICAL | color-switcher.tsx | NOT FIXED |
+| C4 | dangerouslySetInnerHTML for migration | CRITICAL | admin/page.tsx | NOT FIXED |
+| C5 | RLS policies unknown | CRITICAL | Supabase DB | UNKNOWN |
+| H1 | ignoreBuildErrors hides TS errors | HIGH | next.config.mjs | NOT FIXED |
+| H2 | Contact form doesn't send emails | HIGH | contact-form.tsx | NOT FIXED |
+| H3 | Mobile menu CSS var not sanitized | HIGH | navbar.tsx | NOT FIXED |
+| H4 | Auth pages are unnecessary client components | HIGH | auth/*.tsx | NOT FIXED |
+| H5 | Search queries Supabase directly | HIGH | search-modal.tsx | NOT FIXED |
+| H6 | Favorites in user metadata — scalability | HIGH | use-favorites.ts | NOT FIXED |
+| M1 | No pagination on product lists | MEDIUM | queries.ts | NOT FIXED |
+| M2 | No error/loading boundaries | MEDIUM | app/ | NOT FIXED |
+| M3 | Admin forms use any types | MEDIUM | admin/*.tsx | NOT FIXED |
+| M4 | No loading states | MEDIUM | app/ | NOT FIXED |
+| M5 | Inconsistent error handling | MEDIUM | queries.ts | NOT FIXED |
+
+---
+
+## HEADLESS WORDPRESS INTEGRATION READINESS
+
+### Can Proceed If:
+- C1, C2, C3, C4 are fixed (admin security)
+- C5 is verified (RLS policies confirmed)
+- H1 is fixed (clean build)
+
+### Must Fix Before Go-Live:
+- H2 (contact form functional)
+- H6 (favorites scalability — dedicated table)
+- M1 (pagination)
+- M2, M4 (error/loading boundaries)
+
+### Nice to Have:
+- H4, H5 (cleaner architecture)
+- L1, L2, L3 (optimizations)
+
+---
+
+## RECOMMENDED FIX ORDER
+
+### Phase 1: Critical Security (Before Any Integration Work)
+1. Add `/admin/*` to middleware protection
+2. Add admin role verification
+3. Fix ColorSwitcher XSS (hex allowlist)
+4. Remove `dangerouslySetInnerHTML` → proper client component
+5. Verify RLS policies in Supabase dashboard
+6. Remove `ignoreBuildErrors: true` + fix 4 TypeScript errors
+
+### Phase 2: Core Functionality
+7. Add contact form API route + email sending
+8. Create dedicated favorites table + update hook
+9. Add pagination to product queries
+
+### Phase 3: Polish
+10. Error/loading boundaries
+11. Convert auth pages to Server Actions
+12. Search via API route
+13. Admin type safety (`any` → interfaces)
+
+### Phase 4: Headless WordPress Integration
+14. Add WordPress as headless CMS (CPTs + REST API)
+15. Replace static data fetch calls with WordPress REST API
+16. Keep Supabase only for auth + favorites
+

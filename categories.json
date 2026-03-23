@@ -1,0 +1,38 @@
+[
+  {
+    "id": "nouveautes",
+    "label": "Nouveautés",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/nouveautes.jpg",
+    "href": "/products/nouveautes"
+  },
+  {
+    "id": "canapes",
+    "label": "Canapés",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/canapes.jpg",
+    "href": "/products/canapes"
+  },
+  {
+    "id": "canapes-composables",
+    "label": "Canapés Composables",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/composables.jpg",
+    "href": "/products/canapes-composables"
+  },
+  {
+    "id": "fauteuils",
+    "label": "Fauteuils",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/fauteuils.jpg",
+    "href": "/products/fauteuils"
+  },
+  {
+    "id": "lits",
+    "label": "Lits",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/lits.jpg",
+    "href": "/products/lits"
+  },
+  {
+    "id": "meubles",
+    "label": "Meubles",
+    "image": "https://qqiypjvnfoworyilnlag.supabase.co/storage/v1/object/public/images/meubles.jpg",
+    "href": "/products/meubles"
+  }
+]
