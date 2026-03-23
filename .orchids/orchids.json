@@ -1,8 +1,8 @@
 {
   "startupCommands": [
-    "npm install; npm run dev"
+    "bun install; bun run dev -- --port 3000"
   ],
-  "projectId": "49f98c47-d103-4616-9b2b-849c3542873c",
+  "projectId": "5e88651f-eb58-42eb-8316-ba095a753753",
   "templateId": "any",
   "detectedFramework": "nextjs"
 }
